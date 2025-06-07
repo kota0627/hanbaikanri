@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>依頼フォーム</title>
+  <style>
+    label { display: block; margin-top: 8px; }
+    .item-row { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>依頼フォーム</h1>
+  <form id="requestForm">
+    <label>依頼種別
+      <select id="requestType" name="requestType">
+        <option value="見積">見積</option>
+        <option value="注文">注文</option>
+      </select>
+    </label>
+    <label>依頼者名
+      <input type="text" id="requester" required>
+    </label>
+    <label>得意先名
+      <input type="text" id="client" required>
+    </label>
+
+    <div id="items">
+      <div class="item-row">
+        <input type="text" placeholder="品番" class="model" required>
+        <input type="number" placeholder="数量" class="qty" required>
+      </div>
+    </div>
+    <button type="button" id="addItem">行追加</button>
+
+    <label id="deadlineLabel" style="display:none;">希望納期
+      <input type="date" id="deliveryDate">
+    </label>
+    <label>備考
+      <textarea id="note"></textarea>
+    </label>
+    <button type="submit">送信</button>
+  </form>
+
+<script>
+(function() {
+  const form = document.getElementById('requestForm');
+  const typeEl = document.getElementById('requestType');
+  const deadlineLabel = document.getElementById('deadlineLabel');
+  const addItemBtn = document.getElementById('addItem');
+  const itemsContainer = document.getElementById('items');
+
+  typeEl.addEventListener('change', () => {
+    if (typeEl.value === '注文') {
+      deadlineLabel.style.display = 'block';
+    } else {
+      deadlineLabel.style.display = 'none';
+    }
+  });
+
+  addItemBtn.addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = '<input type="text" placeholder="品番" class="model" required> ' +
+      '<input type="number" placeholder="数量" class="qty" required> ' +
+      '<button type="button" class="remove">削除</button>';
+    itemsContainer.appendChild(row);
+    row.querySelector('.remove').addEventListener('click', () => row.remove());
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const items = Array.from(document.querySelectorAll('#items .item-row')).map(row => ({
+      model: row.querySelector('.model').value,
+      quantity: row.querySelector('.qty').value
+    }));
+    const payload = {
+      type: typeEl.value,
+      requester: document.getElementById('requester').value,
+      client: document.getElementById('client').value,
+      items,
+      deliveryDate: document.getElementById('deliveryDate').value || undefined,
+      note: document.getElementById('note').value
+    };
+    try {
+      const res = await fetch('/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        alert('送信完了');
+        form.reset();
+        deadlineLabel.style.display = 'none';
+        // remove extra rows
+        itemsContainer.innerHTML = '<div class="item-row"><input type="text" placeholder="品番" class="model" required> <input type="number" placeholder="数量" class="qty" required></div>';
+      } else {
+        alert('送信失敗');
+      }
+    } catch (err) {
+      alert('通信エラー');
+    }
+  });
+})();
+</script>
+</body>
+</html>
